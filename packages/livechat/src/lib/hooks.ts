@@ -223,6 +223,10 @@ const api = {
 	setParentUrl: (parentUrl: StoreState['parentUrl']) => {
 		store.setState({ parentUrl });
 	},
+	setHiddenSystemMessages: (hiddenSystemMessages: StoreState['iframe']['hiddenSystemMessages']) => {
+		const { iframe } = store.state;
+		store.setState({ iframe: { ...iframe, hiddenSystemMessages } });
+	},
 };
 
 function onNewMessageHandler(event: MessageEvent<LivechatMessageEventData<HooksWidgetAPI>>) {
