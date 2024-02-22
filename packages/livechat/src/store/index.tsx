@@ -131,7 +131,7 @@ export const initialState = (): StoreState => ({
 	iframe: {
 		guest: undefined,
 		theme: {
-			hideGuestAvatar: false,
+			hideGuestAvatar: true,
 			hideAgentAvatar: false,
 		},
 		visible: true,
