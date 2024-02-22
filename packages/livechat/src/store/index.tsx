@@ -44,6 +44,7 @@ export type StoreState = {
 			showConnecting?: any;
 			limitTextLength?: any;
 			displayOfflineForm?: boolean;
+			logoUrl?: string;
 		};
 		online?: boolean;
 		departments: Department[];
