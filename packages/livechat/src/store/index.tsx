@@ -9,13 +9,9 @@ import { parentCall } from '../lib/parentCall';
 import { createToken } from '../lib/random';
 import Store from './Store';
 
-export type LivechatSytemMessageType =
-	| 'r' // Room name changed
-	| 'au' // User added
-	| 'ru' // User removed
+export type LivechatHiddenSytemMessageType =
 	| 'uj' // User joined
 	| 'ul' // User left
-	| 'wm' // Welcome
 	| 'livechat-close' // Chat closed
 	| 'livechat-started' // Chat started
 	| 'livechat_transfer_history' // Chat transfered
@@ -56,7 +52,7 @@ export type StoreState = {
 			showConnecting?: any;
 			limitTextLength?: any;
 			displayOfflineForm?: boolean;
-			hiddenSystemMessages?: LivechatSytemMessageType[];
+			hiddenSystemMessages?: LivechatHiddenSytemMessageType[];
 		};
 		online?: boolean;
 		departments: Department[];
@@ -83,7 +79,7 @@ export type StoreState = {
 		visible?: boolean;
 		department?: string;
 		language?: string;
-		hiddenSystemMessages?: LivechatSytemMessageType[];
+		hiddenSystemMessages?: LivechatHiddenSytemMessageType[];
 	};
 	gdpr: {
 		accepted: boolean;
