@@ -348,8 +348,7 @@ function setParentUrl(url: string) {
 
 function setHiddenSystemMessages(hidden: StoreState['iframe']['hiddenSystemMessages']) {
 	if (!Array.isArray(hidden)) {
-		console.log('Error: Invalid parameters. Value must be an array of strings');
-		return;
+		throw Error('Error: Invalid parameters. Value must be an array of strings');
 	}
 
 	callHook('setHiddenSystemMessages', hidden);
