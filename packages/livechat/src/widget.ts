@@ -41,6 +41,7 @@ type InitializeParams = {
 	language: string;
 	agent: StoreState['defaultAgent'];
 	parentUrl: string;
+	hiddenSystemMessages: StoreState['iframe']['hiddenSystemMessages'];
 };
 
 const WIDGET_OPEN_WIDTH = 365;
@@ -402,6 +403,9 @@ function initialize(initParams: Partial<InitializeParams>) {
 				continue;
 			case 'parentUrl':
 				setParentUrl(params as InitializeParams['parentUrl']);
+				continue;
+			case 'hiddenSystemMessages':
+				setHiddenSystemMessages(params as InitializeParams['hiddenSystemMessages']);
 				continue;
 			default:
 				continue;
