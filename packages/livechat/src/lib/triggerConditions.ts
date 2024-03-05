@@ -1,6 +1,5 @@
 import type { ILivechatTriggerCondition } from '@rocket.chat/core-typings';
 
-import type { LivechatStoreState } from '../store';
 import store from '../store';
 import Triggers from './triggers';
 
@@ -16,23 +15,22 @@ export const pageUrlCondition = (condition: ILivechatTriggerCondition) => {
 	if (hrefRegExp.test(parentUrl)) {
 		return Promise.resolve();
 	}
+
+	return Promise.reject();
 };
 
 export const timeOnSiteCondition = (condition: ILivechatTriggerCondition) => {
 	return new Promise<void>((resolve, reject) => {
 		const timeout = parseInt(`${condition?.value || 0}`, 10) * 1000;
-		const timeoutId = setTimeout(() => resolve(), timeout);
+		setTimeout(() => {
+			const { user } = store.state;
+			if (user?.token) {
+				reject(`Condition "${condition.name}" is no longer valid`);
+				return;
+			}
 
-		const watchStateChange = (event: [LivechatStoreState] | undefined) => {
-			const [{ minimized = true }] = event || [{}];
-			if (minimized) return;
-
-			clearTimeout(timeoutId);
-			store.off('change', watchStateChange);
-			reject(`Condition "${condition.name}" is no longer valid`);
-		};
-
-		store.on('change', watchStateChange);
+			resolve();
+		}, timeout);
 	});
 };
 
