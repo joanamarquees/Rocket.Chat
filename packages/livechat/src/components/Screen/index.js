@@ -131,7 +131,7 @@ export const Screen = ({ title, agent, children, className, unread, triggered = 
 				text={title}
 				badge={unread}
 				minimized={minimized}
-				logoUrl={livechatLogo.url}
+				logoUrl={livechatLogo?.url}
 				className={createClassName(styles, 'screen__chat-button')}
 				onClick={minimized ? onRestore : onMinimize}
 			/>
