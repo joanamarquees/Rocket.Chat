@@ -1,57 +1,67 @@
 import type { ILivechatAgent, ILivechatTrigger, ILivechatTriggerAction, ILivechatTriggerType, Serialized } from '@rocket.chat/core-typings';
 
 import { Livechat } from '../api';
+import type { Agent } from '../definitions/agents';
 import { upsert } from '../helpers/upsert';
 import store from '../store';
 import { processUnread } from './main';
 
 type AgentPromise = { username: string } | Serialized<ILivechatAgent> | null;
 
-let agentPromise: Promise<AgentPromise> | null;
+let agentPromise: Promise<AgentPromise> | null = null;
+
 const agentCacheExpiry = 3600000;
 
 const isAgentWithInfo = (agent: any): agent is Serialized<ILivechatAgent> => !agent.hiddenInfo;
 
-export const getAgent = (triggerAction: ILivechatTriggerAction): Promise<AgentPromise> => {
+const getNextAgentFromQueue = async () => {
+	const {
+		defaultAgent,
+		iframe: { guest: { department } = {} },
+	} = store.state;
+
+	if (defaultAgent?.ts && Date.now() - defaultAgent.ts < agentCacheExpiry) {
+		return defaultAgent; // cache valid for 1 hour
+	}
+
+	let agent = null;
+	try {
+		const tempAgent = await Livechat.nextAgent({ department });
+
+		if (isAgentWithInfo(tempAgent?.agent)) {
+			agent = tempAgent.agent;
+		}
+	} catch (error) {
+		return Promise.reject(error);
+	}
+
+	store.setState({ defaultAgent: { ...agent, department, ts: Date.now() } as Agent });
+
+	return agent;
+};
+
+export const getAgent = async (triggerAction: ILivechatTriggerAction): Promise<AgentPromise> => {
 	if (agentPromise) {
 		return agentPromise;
 	}
 
-	agentPromise = new Promise<AgentPromise>(async (resolve, reject) => {
-		const { params } = triggerAction;
+	agentPromise = new Promise(async (resolve, reject) => {
+		const { sender, name = '' } = triggerAction.params || {};
 
-		if (params?.sender === 'queue') {
-			const { state } = store;
-			const {
-				defaultAgent,
-				iframe: {
-					guest: { department },
-				},
-			} = state;
-			if (defaultAgent?.ts && Date.now() - defaultAgent.ts < agentCacheExpiry) {
-				return resolve(defaultAgent); // cache valid for 1
-			}
-
-			let agent = null;
-			try {
-				const tempAgent = await Livechat.nextAgent({ department });
-
-				if (isAgentWithInfo(tempAgent?.agent)) {
-					agent = tempAgent.agent;
-				}
-			} catch (error) {
-				return reject(error);
-			}
-
-			store.setState({ defaultAgent: { ...agent, department, ts: Date.now() } });
-			resolve(agent);
-		} else if (params?.sender === 'custom') {
-			resolve({
-				username: params.name,
-			});
-		} else {
-			reject('Unknown sender');
+		if (sender === 'custom') {
+			resolve({ username: name });
 		}
+
+		if (sender === 'queue') {
+			try {
+				const agent = await getNextAgentFromQueue();
+				resolve(agent);
+			} catch (_) {
+				resolve({ username: 'rocket.cat' });
+			}
+		}
+
+		return reject('Unknown sender type.');
 	});
 
 	// expire the promise cache as well
@@ -90,10 +100,12 @@ export const requestTriggerMessages = async ({
 	triggerId,
 	token,
 	metadata = {},
+	fallbackMessage,
 }: {
 	triggerId: string;
 	token: string;
 	metadata: Record<string, string>;
+	fallbackMessage?: string;
 }) => {
 	try {
 		const extraData = Object.entries(metadata).reduce<{ key: string; value: string }[]>(
@@ -103,12 +115,11 @@ export const requestTriggerMessages = async ({
 
 		const { response } = await Livechat.rest.post(`/v1/livechat/triggers/${triggerId}/external-service/call`, { extraData, token });
 		return response.contents;
-	} catch (e) {
-		const error = e as { fallbackMessage?: string };
-		if (!error.fallbackMessage) {
+	} catch (_) {
+		if (!fallbackMessage) {
 			throw Error('Unable to fetch message from external service.');
 		}
 
-		return [{ msg: error.fallbackMessage, order: 0 }];
+		return [{ msg: fallbackMessage, order: 0 }];
 	}
 };
